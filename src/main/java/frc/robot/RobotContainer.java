@@ -22,15 +22,6 @@ import frc.robot.Constants.OIConstants;
 import frc.robot.commands.AutoCommands;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.GenericRequirement;
-import frc.robot.subsystems.arm.Arm;
-import frc.robot.subsystems.arm.ArmIOReal;
-import frc.robot.subsystems.arm.ArmIOSim;
-import frc.robot.subsystems.elevator.Elevator;
-import frc.robot.subsystems.elevator.ElevatorIOReal;
-import frc.robot.subsystems.elevator.ElevatorIOSim;
-import frc.robot.subsystems.intake.Intake;
-import frc.robot.subsystems.intake.IntakeIORealVortex;
-import frc.robot.subsystems.intake.IntakeIOSim;
 import frc.robot.subsystems.swerve.Swerve;
 import frc.robot.subsystems.swerve.SwerveConstants;
 import frc.robot.subsystems.vision.AprilTag.Vision;
@@ -57,17 +48,12 @@ public class RobotContainer {
 
   public int autoScoreMode = 1;
 
-  private Elevator elevator;
-  private Intake intake;
   LoggedDashboardChooser<Command> autoChooser;
 
   public RobotContainer() throws IOException, ParseException {
     GenericRequirement.initialize();
     switch (Constants.currentMode) {
       case REAL:
-        elevator = Elevator.initialize(new ElevatorIOReal());
-        intake = Intake.initialize(new IntakeIORealVortex());
-        Arm.initialize(new ArmIOReal());
         drivetrain = Swerve.initialize(new Swerve(TunerConstants.DrivetrainConstants, 50, TunerConstants.FrontLeft, TunerConstants.FrontRight, TunerConstants.BackLeft, TunerConstants.BackRight));
         vision = Vision.initialize(
           new VisionIOReal(0), 
@@ -76,9 +62,6 @@ public class RobotContainer {
         break;
 
       case SIM:
-        elevator = Elevator.initialize(new ElevatorIOSim());
-        intake = Intake.initialize(new IntakeIOSim());
-        Arm.initialize(new ArmIOSim());
         drivetrain = Swerve.initialize(TunerConstants.createDrivetrain());
         visualizer = new RobotVisualizer();
         if(Constants.visonSimEnabled) {
@@ -87,10 +70,7 @@ public class RobotContainer {
         break;
 
       default:
-        elevator = Elevator.initialize(new ElevatorIOSim());
-        intake = Intake.initialize(new IntakeIOSim());
         drivetrain = Swerve.initialize(TunerConstants.createDrivetrain());
-        Arm.initialize(new ArmIOSim());
         break;
     }
     
@@ -98,13 +78,9 @@ public class RobotContainer {
     NamedCommandManager.registerNamedCommands();
 
     autoChooser = new LoggedDashboardChooser<>("Auto Chooser", AutoBuilder.buildAutoChooser("Driver Forward Straight"));
-    autoChooser.addOption("BottomBarge C BB BF", AutoBuilder.buildAuto("BottomBarge C BB BF"));
+    
     configureBindings();
     
-  }
-
-  public void zeroArm() {
-    Arm.getInstance().seedRelativeEncoder();
   }
 
   private void configureBindings() {
@@ -118,23 +94,7 @@ public class RobotContainer {
     // Zero heading
     Constants.OIConstants.driverController.b().onTrue(drivetrain.runOnce(() -> drivetrain.seedFieldCentric()));
 
-    // Reef/Feeder align
-    Constants.OIConstants.driverController.leftBumper().whileTrue(
-      Commands.either(
-        AutoCommands.autoScore(),
-        Commands.startEnd(
-          () -> {
-              OIConstants.driverController.setRumble(RumbleType.kBothRumble, 0.6);
-              OIConstants.operatorController.setRumble(RumbleType.kBothRumble, 0.6);
-          },
-          () -> {
-              OIConstants.driverController.setRumble(RumbleType.kBothRumble, 0);
-              OIConstants.operatorController.setRumble(RumbleType.kBothRumble, 0);
-          }
-        ),
-        () -> Vision.getInstance().isVisionUpdating()
-      )
-    );
+    
 
     // Algae align
     Constants.OIConstants.driverController.rightBumper().whileTrue(
@@ -145,48 +105,6 @@ public class RobotContainer {
     Constants.OIConstants.driverController.leftTrigger().onTrue(Commands.runOnce(() -> drivetrain.setSlowMode(true)));
     Constants.OIConstants.driverController.leftTrigger().onFalse(Commands.runOnce(() -> drivetrain.setSlowMode(false)));
 
-    // Outtake
-    Constants.OIConstants.driverController.rightTrigger().whileTrue(
-      Commands.startEnd(
-        () -> intake.setIntakeSpeed(-1),
-        () -> intake.setIntakeSpeed(0), 
-        intake
-      ).alongWith(Commands.runOnce(() -> intake.outtake())));           
-
-    // Coral Setpoints
-    Constants.OIConstants.operatorController.povUp().onTrue(
-        Commands.either(
-            Commands.runOnce(() -> OIConstants.autoScoreMode = 4), 
-            AutoCommands.raiseL4(), 
-            () -> vision.isVisionUpdating()));
-    Constants.OIConstants.operatorController.povRight().onTrue(
-        Commands.either(
-            Commands.runOnce(() -> OIConstants.autoScoreMode = 3), 
-            AutoCommands.raiseL3(), 
-            () -> vision.isVisionUpdating()));
-    Constants.OIConstants.operatorController.povLeft().onTrue(
-      Commands.either(
-          Commands.runOnce(() -> OIConstants.autoScoreMode = 2), 
-          AutoCommands.raiseL2(), 
-          () -> vision.isVisionUpdating()));
-    
-    Constants.OIConstants.operatorController.povDown().onTrue(AutoCommands.stow());
-
-    // Algae setpoints
-    Constants.OIConstants.operatorController.rightTrigger().onTrue(AutoCommands.AlgaeLow());
-    Constants.OIConstants.operatorController.leftTrigger().onTrue(AutoCommands.algaeHigh());
-    Constants.OIConstants.operatorController.x().onTrue((AutoCommands.processor()));
-
-    // Reverse intake
-    Constants.OIConstants.operatorController.y().whileTrue(
-      Commands.startEnd(
-        () -> intake.setIntakeSpeed(1),
-        () ->  intake.setIntakeSpeed(0), 
-        intake
-      ));
-
-    // Intake
-    OIConstants.operatorController.a().onTrue(intake.intakeCommand());
       
     // Change reef scoring stem
     OIConstants.driverController.x().onTrue(
@@ -198,15 +116,6 @@ public class RobotContainer {
 
 
 
-    // Seed arm
-    OIConstants.driverController.povUp().onTrue(Commands.runOnce(() -> Arm.getInstance().seedRelativeEncoder()));
-
-    // Vertical stow
-    OIConstants.operatorController.b()
-     .onTrue(AutoCommands.vstow());
-
-     //One Coral Away 
-     OIConstants.driverController.y().onTrue(AutoCommands.oneCoralAway());
     
 
     drivetrain.registerTelemetry(logger::telemeterize);

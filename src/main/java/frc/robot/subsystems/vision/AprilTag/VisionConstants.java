@@ -29,10 +29,8 @@ public class VisionConstants {
 
     public static final String[] cameraIds =
     new String[] {
-        "Jermaine Coral",
-        "Cod Wave",
-        "Kendrick LaBarge",
-        "Chief Reef"
+        "Front Right",
+        "Front Left"
       };
 
     // Based on sim. Change once actually mounted
@@ -58,29 +56,9 @@ public class VisionConstants {
             new Rotation3d(
                 Units.degreesToRadians(0), 
                 Units.degreesToRadians(-20), 
-                Units.degreesToRadians(20))),
+                Units.degreesToRadians(20)))
 
-        // Left Camera
-        new Transform3d(
-            new Translation3d(
-                Units.inchesToMeters(-3),
-                Units.inchesToMeters(13),
-                Units.inchesToMeters(39.5)), 
-            new Rotation3d(
-                0, 
-                Units.degreesToRadians(0), 
-                Units.degreesToRadians(135))),
-
-        // Right Camera
-        new Transform3d(
-            new Translation3d(
-                Units.inchesToMeters(-3),
-                -Units.inchesToMeters(13),
-                Units.inchesToMeters(39.5)), 
-            new Rotation3d(
-                0, 
-                Units.degreesToRadians(0), 
-                Units.degreesToRadians(-135)))};
+        };
 
     public static AprilTagFieldLayout aprilTagFieldLayout;
 
